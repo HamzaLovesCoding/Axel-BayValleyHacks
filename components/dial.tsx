@@ -136,6 +136,7 @@ export function Dial({ className = "" }: { className?: string }) {
   const angle = useAssistant((s) => s.angle);
   const active = useAssistant((s) => s.active);
   const holding = useAssistant((s) => s.holding);
+  const releaseAllowed = useAssistant((s) => s.robotMode === "sim" || s.health?.canRelease === true);
   const presenting = useAssistant((s) => s.presenting);
   const away = useAssistant((s) => s.away);
   const mode = useAssistant((s) => s.mode);
@@ -269,7 +270,7 @@ export function Dial({ className = "" }: { className?: string }) {
           state={offered ? "offered" : atYou ? "active" : "place"}
           color={atYou ? slotColor(atYou.position) : "var(--muted)"}
           delay={80 + tray.length * 45}
-          request={atYou ? { phrase: offered ? "Take it" : "Release", enabled: !busy } : undefined}
+          request={atYou ? { phrase: offered ? "Take it" : "Release", enabled: !busy && (!!offered || releaseAllowed) } : undefined}
           onAsk={onAsk}
         />
       </svg>

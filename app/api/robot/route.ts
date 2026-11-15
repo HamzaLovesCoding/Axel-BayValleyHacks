@@ -44,6 +44,9 @@ export async function GET() {
       configured: true, reachable: res.ok, busy: status.busy === true,
       ...(status.mode === "dry-run" || status.mode === "serial" ? { mode: status.mode } : {}),
       ...(known ? { holding: status.holding, presenting: status.presenting } : {}),
+      canRelease: res.ok && status.canRelease === true,
+      needsRecovery: status.needsRecovery === true,
+      atHandoff: status.atHandoff === true,
       ...(typeof status.error === "string" ? { error: status.error } : {}),
     }, { headers: { "cache-control": "no-store" } });
   } catch {

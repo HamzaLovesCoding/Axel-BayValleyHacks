@@ -1,6 +1,8 @@
 // What the phone sends to the arm. The /api/robot route forwards these, unchanged, to the bridge
 // running next to the robot. The full contract lives in docs/contracts.md; change both together.
 // The bridge (bridge/*.ts) imports this file too, so keep it free of imports and app-only code.
+export const STOP_FAILURE = "I couldn't confirm the arm stopped. Switch off its power.";
+
 export type RobotMessage =
   | { action: "fetch"; position: number; angle: number; item: string }
   | { action: "release" }

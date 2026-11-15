@@ -7,6 +7,7 @@ import { PHASES, type Phase, type PhaseEvent, type RobotLink } from "./types";
 export type RobotHealth = {
   configured: boolean; reachable: boolean; busy?: boolean;
   holding?: number | null; presenting?: number | null; error?: string;
+  canRelease?: boolean; needsRecovery?: boolean; atHandoff?: boolean;
 };
 
 export class BridgeError extends Error {
@@ -22,6 +23,8 @@ export async function checkRobot(): Promise<RobotHealth> {
     const position = (p: unknown): p is number | null => p === null || (typeof p === "number" && Number.isInteger(p) && p >= 1 && p <= 7);
     return { configured: value.configured === true, reachable: value.reachable === true,
       busy: value.busy === true,
+      canRelease: value.reachable === true && value.canRelease === true,
+      needsRecovery: value.needsRecovery === true, atHandoff: value.atHandoff === true,
       ...(position(value.holding) && position(value.presenting) ? { holding: value.holding, presenting: value.presenting } : {}),
       ...(typeof value.error === "string" && value.error.trim() ? { error: value.error } : {}),
     };

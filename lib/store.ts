@@ -4,7 +4,7 @@ import { interpretKeywords } from "./assistant";
 import { parseCommand, type AssistantRequest, type Command, type Interpretation } from "./command";
 import { bridgeLink, BridgeError, checkRobot, type RobotHealth } from "./robot/bridge";
 import { createSimLink, simLink } from "./robot/sim";
-import type { Phase, RobotLink, RobotMessage } from "./robot/types";
+import { STOP_FAILURE, type Phase, type RobotLink, type RobotMessage } from "./robot/types";
 import { angleOf, DEFAULT_TRAY, HANDOFF_ANGLE, MAX_NAME, pronoun, REST_ANGLE, slotAt, type Slot } from "./tray";
 import { canListen, listen, type Listening, type ListenProblem } from "./voice/listen";
 import { BROWSER_VOICE, fetchEngines, type VoiceEngines } from "./voice/engines";
@@ -156,6 +156,8 @@ export const useAssistant = create<State>()(
       // `urgent` is for "the arm may not have stopped": said even with replies muted, and with the
       // browser's own voice so it never waits on the speech service.
       const say = (text: string, by: Line["by"] = "assistant", aloud = true, urgent = false) => {
+        urgent ||= text === STOP_FAILURE;
+        if (urgent) queued = null;
         stopSpeaking?.();
         stopSpeaking = null;
         const line: Line = { id: uid(), text, by, spoken: aloud && (urgent || get().speakReplies) };
@@ -230,7 +232,7 @@ export const useAssistant = create<State>()(
 
         const controller = new AbortController();
         motion = controller;
-        set({ mode: "moving", active: position ?? null });
+        set({ mode: "moving", active: position ?? null, health: get().health ? { ...get().health!, canRelease: false } : null });
         patchTurn(turnId, { outcome: "running", link: link.kind });
 
         try {
@@ -422,19 +424,21 @@ export const useAssistant = create<State>()(
           const link = get().robotMode === "robot" ? bridgeLink : simLink;
           // Start the dedicated Stop request before cancelling the stream or doing speech work.
           const stopping = link.stop();
+          unlockSpeech();
           requestEpoch++;
           motion?.abort();
           queued = null;
           stopSpeaking?.();
-          set({ phase: "stopped", presenting: null, mode: "moving" });
+          set({ phase: "stopped", presenting: null, mode: "moving", health: get().health ? { ...get().health!, canRelease: false } : null });
           const turnId = addTurn({ role: "assistant", text: "Stopping.", understood: "Stop the arm", action: "stop", outcome: "running" });
           say("Stopping.", "assistant", false);
           stopPending = stopping.then(() => {
             const reply = "Stopped. Tell me what to do next.";
             patchTurn(turnId, { text: reply, outcome: "done" });
             say(reply);
-          }).catch((error: unknown) => {
-            const reply = error instanceof BridgeError ? error.message : networkLine;
+          }).catch(() => {
+            // A transport failure or malformed acknowledgement is also an unconfirmed Stop.
+            const reply = STOP_FAILURE;
             lastStatusError = reply;
             set({ health: { ...(get().health ?? { configured: true }), reachable: false, error: reply } });
             patchTurn(turnId, { text: reply, outcome: "failed" });
@@ -442,6 +446,7 @@ export const useAssistant = create<State>()(
           }).finally(() => {
             stopPending = null;
             if (!motion) set({ mode: "idle" });
+            if (link.kind === "robot") void get().refreshHealth();
           });
         },
 
@@ -455,7 +460,7 @@ export const useAssistant = create<State>()(
         setHandsFree: (handsFree) => set({ handsFree }),
 
         setSpeakReplies: (on) => {
-          if (!on) stopSpeaking?.();
+          if (!on && get().line.text !== STOP_FAILURE) stopSpeaking?.();
           set({ speakReplies: on });
         },
 
@@ -468,8 +473,9 @@ export const useAssistant = create<State>()(
 
         refreshHealth: async () => {
           const robotMode = get().robotMode;
+          const epoch = requestEpoch;
           const health = await checkRobot();
-          if (get().robotMode !== robotMode) return;
+          if (get().robotMode !== robotMode || epoch !== requestEpoch) return;
           set({ health });
           if (robotMode === "robot") {
             if (health.error && health.error !== lastStatusError) {
@@ -481,7 +487,7 @@ export const useAssistant = create<State>()(
           }
           if (robotMode === "robot" && !motion && !["thinking", "listening"].includes(get().mode) && health.holding !== undefined && health.presenting !== undefined) {
             const { holding, presenting } = health;
-            const stopped = !health.reachable || get().phase === "stopped";
+            const stopped = !health.reachable || health.needsRecovery || get().phase === "stopped";
             set({ holding, presenting, active: holding ?? presenting,
               mode: health.busy || stopPending ? "moving" : "idle",
               phase: stopped ? "stopped" : holding != null ? "holding" : presenting != null ? "presenting" : "stowed",

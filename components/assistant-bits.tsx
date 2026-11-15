@@ -114,8 +114,9 @@ export function useSuggestions() {
   const holding = useAssistant((s) => s.holding);
   const hasAway = useAssistant((s) => s.away.length > 0);
   const presenting = useAssistant((s) => s.presenting != null);
+  const releaseAllowed = useAssistant((s) => s.robotMode === "sim" || s.health?.canRelease === true);
   return useMemo(() => {
-    if (holding != null) return ["Release", "Put it back"];
+    if (holding != null) return releaseAllowed ? ["Release", "Put it back"] : ["Put it back"];
     // The open gripper is waiting: the only useful thing to say is go.
     if (presenting) return ["Go"];
     const names = tray.map((s) => s.name.trim().toLowerCase());
@@ -125,7 +126,7 @@ export function useSuggestions() {
     if (names.includes("water")) list.push("I'm so thirsty");
     if (names[3]) list.push(`Bring me the ${names[3]}`);
     return list;
-  }, [tray, holding, hasAway, presenting]);
+  }, [tray, holding, hasAway, presenting, releaseAllowed]);
 }
 
 // Tapping a chip is the same as saying it. aria-disabled (not disabled) keeps keyboard focus while busy.

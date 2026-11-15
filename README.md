@@ -34,3 +34,21 @@ npm run build
 ```
 
 For a production preview, set `APP_PASSCODE` privately in `.env.local`, then run `npm run build` and `npm start -- --port 3001`.
+
+## Preview on your phone
+
+Requires `cloudflared` installed on the laptop. Set a private `APP_PASSCODE` in `.env.local`, then start the app:
+
+```bash
+npm run dev -- --hostname 127.0.0.1 --port 3001
+```
+
+In a second terminal in this folder:
+
+```bash
+npm run tunnel
+```
+
+The helper checks that the running app rejects unauthenticated API requests and redirects pages to the passcode screen before starting the tunnel. Restart Next after setting the passcode. Open the printed HTTPS URL in Safari on your phone, enter your passcode, and choose **Simulator** in Setup. Keep both terminals running; press Ctrl+C in the tunnel terminal when finished.
+
+The HTTPS preview supports microphone permissions, but transcription and spoken replies still depend on the selected browser or configured voice services. The tunnel helper adds no npm dependency and does not connect to a robot.

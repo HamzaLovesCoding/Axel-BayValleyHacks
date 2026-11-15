@@ -1,0 +1,472 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+
+  --ease-glide: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-servo: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* `inline` so utilities resolve the variable at use time and follow the colour scheme. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-accent: var(--accent);
+  --color-accent-text: var(--accent-text);
+  --color-on-accent: var(--on-accent);
+  --color-ok: var(--ok);
+}
+
+:root {
+  --bg: #f7f7f5;
+  --fg: #161615;
+  --muted: #6c6c69;
+  --faint: color-mix(in oklab, var(--fg) 24%, transparent);
+  --line: color-mix(in oklab, var(--fg) 9%, transparent);
+  --surface: #ffffff;
+  --surface-2: #ededea;
+
+  /* One signal colour, reserved for "live": the mic is open or the arm is moving.
+     Ink sits on it, not white: 6.9:1 against 3:1. */
+  --accent: #ff4f00;
+  /* Slightly deeper so orange text still clears 3:1 on the light background. */
+  --accent-text: #d94200;
+  --on-accent: #0b0b0b;
+  --ok: #16a34a;
+
+  /* One hue per tray spot, running across the reach band like a spectrum. Every screen that
+     names an item uses its spot's colour, so "the teal one" means the same thing everywhere. */
+  --slot-1: oklch(0.62 0.19 355);
+  --slot-2: oklch(0.6 0.19 310);
+  --slot-3: oklch(0.58 0.19 272);
+  --slot-4: oklch(0.62 0.15 235);
+  --slot-5: oklch(0.64 0.12 190);
+  --slot-6: oklch(0.64 0.16 145);
+  --slot-7: oklch(0.7 0.15 88);
+  /* How far a solid slot colour is lightened so ink text on it stays easy to read. */
+  --slot-lift: 22%;
+
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: #0e0e0f;
+  --fg: #ededed;
+  --muted: #8e8e93;
+  --faint: color-mix(in oklab, var(--fg) 26%, transparent);
+  --line: color-mix(in oklab, var(--fg) 8%, transparent);
+  --surface: #18181a;
+  --surface-2: #232325;
+
+  --accent: #ff5a14;
+  --accent-text: #ff6a2b;
+  --on-accent: #0a0a0a;
+  --ok: #4cc38a;
+
+  --slot-1: oklch(0.74 0.16 355);
+  --slot-2: oklch(0.74 0.15 310);
+  --slot-3: oklch(0.72 0.15 272);
+  --slot-4: oklch(0.76 0.13 235);
+  --slot-5: oklch(0.8 0.11 190);
+  --slot-6: oklch(0.8 0.15 145);
+  --slot-7: oklch(0.84 0.14 88);
+  --slot-lift: 0%;
+
+  color-scheme: dark;
+}
+
+html {
+  background: var(--bg);
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* In the base layer so a utility like focus-visible:outline-none can override it. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+  button,
+  a {
+    cursor: pointer;
+  }
+}
+
+/* Press feedback for every tappable surface: a quick dip, no hover dependency. */
+@utility press {
+  transition-property: transform, opacity, background-color, color;
+  transition-duration: 160ms;
+  transition-timing-function: var(--ease-glide);
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ---------- The dial ---------- */
+
+.dial-face {
+  filter: drop-shadow(0 14px 26px rgb(0 0 0 / 0.07));
+  transition: stroke 300ms var(--ease-glide);
+}
+
+/* A spot on the tray. --c is the spot's colour; the state decides how much of it shows. */
+.tile {
+  outline: none;
+  transition: opacity 400ms var(--ease-glide);
+  -webkit-tap-highlight-color: transparent;
+}
+.tile[role="button"]:not([aria-disabled]) {
+  cursor: pointer;
+}
+.tile[data-dim] {
+  opacity: 0.45;
+}
+.tile-in,
+.tile-press {
+  transform-origin: center;
+  transform-box: fill-box;
+}
+/* The tiles land once, left to right round the ring. */
+.tile-in {
+  animation: tile-in 520ms var(--ease-glide) both;
+}
+@keyframes tile-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+.tile-press {
+  transition: transform 160ms var(--ease-glide);
+}
+.tile-shape {
+  fill: color-mix(in oklab, var(--c) 17%, var(--surface));
+  stroke: transparent;
+  stroke-width: 1.2;
+  transition:
+    fill 300ms var(--ease-glide),
+    stroke 300ms var(--ease-glide);
+}
+.tile-label {
+  fill: color-mix(in oklab, var(--c) 66%, var(--fg));
+  letter-spacing: 0.01em;
+  pointer-events: none;
+  transition: fill 300ms var(--ease-glide);
+}
+.tile[data-state="active"] .tile-shape {
+  fill: color-mix(in oklab, var(--c), white var(--slot-lift));
+}
+.tile[data-state="active"] .tile-label {
+  fill: var(--on-accent);
+}
+/* Not on the tray right now: only the outline of where it lives. */
+.tile[data-state="away"] .tile-shape,
+.tile[data-state="empty"] .tile-shape {
+  fill: transparent;
+  stroke: color-mix(in oklab, var(--c) 50%, transparent);
+  stroke-dasharray: 2.4 2.4;
+}
+.tile[data-state="away"] .tile-label {
+  fill: var(--muted);
+}
+.tile[data-state="empty"] .tile-shape {
+  stroke: var(--line);
+}
+/* Somewhere rather than something: the hand-over point while it's empty. */
+.tile[data-state="offered"] .tile-shape {
+  fill: transparent;
+  stroke: var(--c);
+  stroke-width: 1.8;
+  stroke-dasharray: 3 2;
+}
+.tile[data-state="offered"] .tile-label {
+  fill: var(--c);
+}
+.tile[data-state="place"] .tile-shape {
+  fill: var(--surface-2);
+}
+.tile[data-state="place"] .tile-label {
+  fill: var(--muted);
+}
+.tile[role="button"]:not([aria-disabled]):active .tile-press {
+  transform: scale(0.94);
+}
+.tile:focus-visible .tile-shape {
+  stroke: var(--fg);
+  stroke-dasharray: none;
+}
+@media (hover: hover) {
+  .tile[role="button"][data-state="idle"]:not([aria-disabled]):hover .tile-shape {
+    fill: color-mix(in oklab, var(--c) 30%, var(--surface));
+  }
+  .tile[role="button"][data-state="away"]:not([aria-disabled]):hover .tile-shape {
+    fill: color-mix(in oklab, var(--c) 12%, var(--surface));
+  }
+}
+
+.dial-glow {
+  transition:
+    opacity 600ms var(--ease-glide),
+    background-color 600ms var(--ease-glide);
+}
+
+.dial-pulse {
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: pulse 1.6s var(--ease-glide) infinite;
+}
+.dial-pulse + .dial-pulse {
+  animation-delay: 0.8s;
+}
+@keyframes pulse {
+  from {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  to {
+    transform: scale(1.12);
+    opacity: 0;
+  }
+}
+
+.dial-sweep {
+  transform-origin: 100px 100px;
+  animation: spin 1.1s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- The assistant's voice: five bars, one glyph for every state ---------- */
+
+.voice {
+  display: inline-flex;
+  height: var(--h);
+  flex-shrink: 0;
+  align-items: center;
+  gap: max(2.5px, calc(var(--h) * 0.13));
+}
+.voice span {
+  width: max(2.5px, calc(var(--h) * 0.13));
+  height: calc(var(--h) * var(--rest));
+  border-radius: 99px;
+  background: currentColor;
+  transition: height 300ms var(--ease-glide);
+}
+.voice span:nth-child(1) {
+  --rest: 0.26;
+  --peak: 0.6;
+  --beat: 780ms;
+  --lag: -200ms;
+}
+.voice span:nth-child(2) {
+  --rest: 0.54;
+  --peak: 0.95;
+  --beat: 920ms;
+  --lag: -520ms;
+}
+.voice span:nth-child(3) {
+  --rest: 0.86;
+  --peak: 1;
+  --beat: 700ms;
+  --lag: 0ms;
+}
+.voice span:nth-child(4) {
+  --rest: 0.54;
+  --peak: 0.85;
+  --beat: 1010ms;
+  --lag: -340ms;
+}
+.voice span:nth-child(5) {
+  --rest: 0.26;
+  --peak: 0.55;
+  --beat: 840ms;
+  --lag: -640ms;
+}
+.voice[data-state="listening"] span {
+  animation: voice var(--beat) ease-in-out var(--lag) infinite;
+}
+.voice[data-state="speaking"] span {
+  --peak: 0.72;
+  animation: voice calc(var(--beat) * 1.5) ease-in-out var(--lag) infinite;
+}
+/* Thinking: one ripple running left to right. */
+.voice[data-state="thinking"] span {
+  --peak: 0.62;
+  animation: voice 1000ms ease-in-out infinite;
+}
+.voice[data-state="thinking"] span:nth-child(2) {
+  animation-delay: 110ms;
+}
+.voice[data-state="thinking"] span:nth-child(3) {
+  animation-delay: 220ms;
+}
+.voice[data-state="thinking"] span:nth-child(4) {
+  animation-delay: 330ms;
+}
+.voice[data-state="thinking"] span:nth-child(5) {
+  animation-delay: 440ms;
+}
+@keyframes voice {
+  0%,
+  100% {
+    height: calc(var(--h) * 0.2);
+  }
+  50% {
+    height: calc(var(--h) * var(--peak));
+  }
+}
+
+/* The Talk button while the mic is open. */
+.talk-live {
+  animation: halo 1.6s var(--ease-glide) infinite;
+}
+@keyframes halo {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 50%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 16px transparent;
+  }
+}
+
+.slot-token {
+  background: color-mix(in oklab, var(--c) 18%, transparent);
+  color: color-mix(in oklab, var(--c) 70%, var(--fg));
+}
+
+/* A move in progress: a light in the item's colour running along the card's edge. */
+.progress {
+  background: linear-gradient(90deg, transparent, var(--c), transparent) no-repeat;
+  background-size: 50% 100%;
+  animation: progress 1.4s var(--ease-servo) infinite;
+}
+@keyframes progress {
+  from {
+    background-position: -100% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+.live-dot {
+  animation: live 1.4s ease-in-out infinite;
+}
+@keyframes live {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* ---------- Spoken line: words fill in as they're read; the current one is orange ---------- */
+
+.word {
+  color: var(--faint);
+  transition: color 240ms var(--ease-glide);
+}
+.word[data-lit] {
+  color: var(--fg);
+}
+.word[data-now] {
+  color: var(--accent-text);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.rise {
+  animation: rise 400ms var(--ease-glide) both;
+}
+
+/* ---------- Screen-to-screen slides, driven by <Link transitionTypes> ---------- */
+
+::view-transition {
+  pointer-events: none;
+}
+::view-transition-old(.nav-forward) {
+  --slide: -40px;
+  animation:
+    140ms ease-in both fade reverse,
+    380ms var(--ease-servo) both slide reverse;
+}
+::view-transition-new(.nav-forward) {
+  --slide: 40px;
+  animation:
+    220ms ease-out 120ms both fade,
+    380ms var(--ease-servo) both slide;
+}
+::view-transition-old(.nav-back) {
+  --slide: 40px;
+  animation:
+    140ms ease-in both fade reverse,
+    380ms var(--ease-servo) both slide reverse;
+}
+::view-transition-new(.nav-back) {
+  --slide: -40px;
+  animation:
+    220ms ease-out 120ms both fade,
+    380ms var(--ease-servo) both slide;
+}
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes slide {
+  from {
+    translate: var(--slide);
+  }
+  to {
+    translate: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Looping ambience stops outright; a 1ms infinite loop would flicker. */
+  .dial-pulse,
+  .dial-sweep,
+  .tile-in,
+  .voice span,
+  .talk-live,
+  .progress,
+  .live-dot {
+    animation: none !important;
+  }
+  *,
+  *::before,
+  *::after,
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+  }
+}

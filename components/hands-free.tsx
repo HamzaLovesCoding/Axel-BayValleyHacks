@@ -5,6 +5,7 @@ import { useAssistant } from "@/lib/store";
 import { resumeAudio } from "@/lib/voice/mic";
 import { startHandsFree } from "@/lib/voice/wake";
 import { matchWake, saysStop } from "@/lib/voice/wake-phrase";
+import { holdScreenAwake, needsScreenAwake } from "@/lib/wake-lock";
 
 // "Hey Axel" without a tap. Listens only while nothing else is using the mic or the speaker: not
 // while a command is being heard or thought about, and not while Axel is talking, so it never wakes
@@ -14,6 +15,7 @@ export function HandsFree() {
   const mode = useAssistant((s) => s.mode);
   const speaking = useAssistant((s) => Number.isFinite(s.spokenTo));
   const active = on && (mode === "idle" || mode === "moving") && !speaking;
+  const awake = useAssistant(needsScreenAwake);
 
   useEffect(() => {
     if (!active) return;
@@ -39,28 +41,8 @@ export function HandsFree() {
 
   // The mic only works with the page in front and the screen on. A move needs the screen on too:
   // a locked phone has no Stop button.
-  const awake = on || mode === "moving";
   useEffect(() => {
-    if (!awake || !("wakeLock" in navigator)) return;
-    let lock: WakeLockSentinel | null = null;
-    let released = false;
-    const request = () => {
-      if (document.visibilityState !== "visible") return;
-      navigator.wakeLock
-        .request("screen")
-        .then((sentinel) => {
-          if (released) void sentinel.release();
-          else lock = sentinel;
-        })
-        .catch(() => {});
-    };
-    request();
-    document.addEventListener("visibilitychange", request);
-    return () => {
-      released = true;
-      document.removeEventListener("visibilitychange", request);
-      void lock?.release();
-    };
+    if (awake) return holdScreenAwake();
   }, [awake]);
 
   // After a reload, iOS keeps audio paused until the first tap anywhere.

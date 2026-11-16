@@ -1,5 +1,6 @@
 import { speakEleven, stopEleven, unlockEleven } from "./eleven";
 import type { VoiceEngines } from "./engines";
+import { resumeAudio } from "./mic";
 
 // Text-to-speech. ElevenLabs (./eleven.ts) when the server has ELEVENLABS_API_KEY, otherwise the
 // browser's speechSynthesis: free and offline, but the voice depends on the phone.
@@ -10,6 +11,9 @@ export const canSpeak = () => typeof window !== "undefined" && "speechSynthesis"
 let unlocked = false;
 export function unlockSpeech() {
   unlockEleven();
+  // The stop ear opens the mic once the arm moves, outside any tap. iOS only lets its level meter
+  // run if the audio was started inside one, and every move begins with a tap or a spoken command.
+  resumeAudio();
   if (unlocked || !canSpeak()) return;
   const silent = new SpeechSynthesisUtterance(" ");
   silent.volume = 0;

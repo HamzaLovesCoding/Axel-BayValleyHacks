@@ -1,3 +1,5 @@
+// Lives here rather than next to lib/voice/wake-phrase.ts: the app's tsconfig can't allow ".ts"
+// imports (it sends next dev into a rebuild loop), and the bridge's test setup already runs these.
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { matchWake, saysStop } from "../lib/voice/wake-phrase.ts";

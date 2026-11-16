@@ -26,3 +26,31 @@ export function matchWake(text: string): string | null {
 
 // Said while the arm moves, with or without the wake phrase.
 export const saysStop = (text: string) => /\b(stop|halt|freeze|wait)\b/.test(normalize(text));
+
+// What the always-on ear should be doing. While the arm moves it listens for "stop" whether or not
+// Hands-free is on, because Stop must be reachable by voice on every move. Whisper hears through the
+// phone's echo cancelling, so it keeps listening while Axel talks; the browser's own recogniser
+// shares the speaker with the browser voice, so it waits for the line to end.
+export type Ear = "off" | "wake" | "stop-whisper" | "stop-browser";
+
+export function earFor(s: {
+  mode: "idle" | "listening" | "thinking" | "moving";
+  // A Stop is already on its way: free the mic and speaker for its result.
+  stopping: boolean;
+  speaking: boolean;
+  handsFree: boolean;
+  whisper: boolean;
+  browser: boolean;
+}): Ear {
+  if (s.mode === "moving") {
+    if (s.stopping) return "off";
+    if (s.whisper) return "stop-whisper";
+    return s.browser && !s.speaking ? "stop-browser" : "off";
+  }
+  return s.mode === "idle" && s.handsFree && s.whisper && !s.speaking ? "wake" : "off";
+}
+
+// "Stop" heard while the arm moves. If the line Axel is reading out has the word in it, the mic may
+// only be hearing Axel, so that one doesn't count.
+export const heardStop = (text: string, speakingLine: string | null) =>
+  saysStop(text) && !(speakingLine && saysStop(speakingLine));

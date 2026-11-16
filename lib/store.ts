@@ -58,6 +58,8 @@ export type State = {
   speakReplies: boolean;
   // Listen for "Hey Axel" without a tap (components/hands-free.tsx). Needs Whisper on the laptop.
   handsFree: boolean;
+  // A Stop has been sent and not yet answered. The stop ear rests so the result can be heard.
+  stopping: boolean;
   robotMode: RobotLink["kind"];
 
   ask: (text: string, via: Via) => Promise<void>;
@@ -321,6 +323,7 @@ export const useAssistant = create<State>()(
         tray: DEFAULT_TRAY,
         speakReplies: true,
         handsFree: false,
+        stopping: false,
         robotMode: "sim",
 
         ask: async (raw, via) => {
@@ -429,7 +432,7 @@ export const useAssistant = create<State>()(
           motion?.abort();
           queued = null;
           stopSpeaking?.();
-          set({ phase: "stopped", presenting: null, mode: "moving", health: get().health ? { ...get().health!, canRelease: false } : null });
+          set({ phase: "stopped", presenting: null, mode: "moving", stopping: true, health: get().health ? { ...get().health!, canRelease: false } : null });
           const turnId = addTurn({ role: "assistant", text: "Stopping.", understood: "Stop the arm", action: "stop", outcome: "running" });
           say("Stopping.", "assistant", false);
           stopPending = stopping.then(() => {
@@ -445,6 +448,7 @@ export const useAssistant = create<State>()(
             say(reply, "assistant", true, true);
           }).finally(() => {
             stopPending = null;
+            set({ stopping: false });
             if (!motion) set({ mode: "idle" });
             if (link.kind === "robot") void get().refreshHealth();
           });

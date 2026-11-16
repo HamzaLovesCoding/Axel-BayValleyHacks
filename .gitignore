@@ -40,3 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# agent tooling installed locally, not part of Axel
+/.agents/
+/.claude/skills/
+skills-lock.json

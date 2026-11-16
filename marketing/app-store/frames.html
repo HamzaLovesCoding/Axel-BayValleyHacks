@@ -1,0 +1,85 @@
+<!doctype html>
+<!-- App Store preview frames (1290×2796, iPhone 6.7"). Open with ?f=1…6; render.sh screenshots each. -->
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #161615; --muted: #6c6c69; --paper: #f7f7f5; --accent: #d94200;
+    --meds: #e6e8ff; --night: #0b0b0b;
+  }
+  * { margin: 0; box-sizing: border-box; }
+  html, body { width: 1290px; height: 2796px; overflow: hidden; }
+  body { font-family: "Geist", system-ui, sans-serif; background: var(--paper); color: var(--ink); -webkit-font-smoothing: antialiased; }
+  .frame { position: relative; width: 1290px; height: 2796px; overflow: hidden; }
+  .copy { position: absolute; top: 170px; left: 110px; right: 110px; }
+  .eyebrow { font: 500 40px/1 "Geist Mono", monospace; letter-spacing: .02em; color: var(--muted); display: flex; align-items: center; gap: 18px; }
+  .eyebrow i { width: 18px; height: 18px; border-radius: 50%; background: #ff4f00; display: inline-block; }
+  h1 { margin-top: 44px; font-weight: 650; font-size: 124px; line-height: 1.02; letter-spacing: -0.035em; }
+  h1 em { font-style: normal; color: var(--accent); }
+  p { margin-top: 36px; font-size: 50px; line-height: 1.3; color: var(--muted); max-width: 980px; }
+  .phone {
+    position: absolute; left: 50%; top: 800px; transform: translateX(-50%);
+    width: 860px; padding: 24px; border-radius: 120px; background: #111;
+    box-shadow: 0 0 0 3px #2a2a2a inset, 0 60px 120px -40px rgba(0,0,0,.35), 0 30px 60px -30px rgba(0,0,0,.25);
+  }
+  .screen { position: relative; border-radius: 98px; overflow: hidden; background: var(--paper); }
+  .status { height: 66px; display: flex; align-items: center; justify-content: space-between; padding: 14px 62px 0; font-weight: 600; font-size: 34px; }
+  .status svg { display: block; }
+  .island { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); width: 236px; height: 66px; border-radius: 40px; background: #000; }
+  .screen img { display: block; width: 100%; }
+  /* Tinted variant for the "in motion" frames: the Meds hue the app itself uses on screen. */
+  .tint { background: var(--meds); }
+  .dark { background: var(--night); color: #ededed; }
+  .dark .eyebrow, .dark p { color: #9a9a96; }
+  .dark h1 em { color: #ff5a14; }
+  .dark .screen { background: #0b0b0b; }
+  .dark .status { color: #ededed; }
+  .dark .phone { background: #1c1c1e; box-shadow: 0 0 0 3px #333 inset, 0 60px 140px -40px rgba(255,79,0,.18); }
+</style>
+</head>
+<body>
+<div class="frame" id="frame">
+  <div class="copy">
+    <div class="eyebrow"><i></i><span id="eyebrow"></span></div>
+    <h1 id="title"></h1>
+    <p id="sub"></p>
+  </div>
+  <div class="phone">
+    <div class="screen">
+      <div class="island"></div>
+      <div class="status">
+        <span>9:41</span>
+        <svg width="150" height="30" viewBox="0 0 150 30" fill="currentColor" aria-hidden="true">
+          <rect x="0" y="18" width="7" height="10" rx="2"/><rect x="11" y="13" width="7" height="15" rx="2"/><rect x="22" y="8" width="7" height="20" rx="2"/><rect x="33" y="3" width="7" height="25" rx="2"/>
+          <path d="M66 10a22 22 0 0 1 30 0l-3 3a18 18 0 0 0-24 0zM71 15a14 14 0 0 1 20 0l-3 3a10 10 0 0 0-14 0zM76 20a6 6 0 0 1 10 0l-5 5z"/>
+          <rect x="106" y="5" width="38" height="20" rx="6" fill="none" stroke="currentColor" stroke-width="2.5" opacity=".5"/><rect x="110" y="9" width="28" height="12" rx="3"/><rect x="146" y="11" width="3" height="8" rx="1.5" opacity=".5"/>
+        </svg>
+      </div>
+      <img id="shot" alt="">
+    </div>
+  </div>
+</div>
+<script>
+  // Copy is for a person with arthritis: short, warm, no jargon.
+  const FRAMES = {
+    1: { shot: "01-home", eyebrow: "AXEL", title: "Need it?<br><em>Just ask.</em>", sub: "A robot arm that brings you what's out of reach." },
+    2: { shot: "02-fetching", tint: true, eyebrow: "VOICE FIRST", title: "Say it.<br>Axel <em>grabs it.</em>", sub: "“Bring me my meds” sends a real arm to the tray." },
+    3: { shot: "03-handoff", tint: true, eyebrow: "HAND-OFF", title: "Right into<br><em>your hand.</em>", sub: "Slow and gentle near you. Stop it any time." },
+    4: { shot: "04-chat", eyebrow: "OR TAP", title: "No voice?<br><em>Just tap.</em>", sub: "Every item has its own spot and colour." },
+    5: { shot: "05-settings", eyebrow: "YOUR TRAY", title: "Your tray,<br><em>your way.</em>", sub: "Name each spot once. Axel remembers." },
+    6: { shot: "06-home-dark", dark: true, eyebrow: "DARK MODE", title: "Easy on<br><em>tired eyes.</em>", sub: "Calm in the evening, clear in the morning." },
+  };
+  const f = FRAMES[new URLSearchParams(location.search).get("f") ?? "1"];
+  const frame = document.getElementById("frame");
+  if (f.tint) frame.classList.add("tint");
+  if (f.dark) frame.classList.add("dark");
+  document.getElementById("eyebrow").textContent = f.eyebrow;
+  document.getElementById("title").innerHTML = f.title;
+  document.getElementById("sub").textContent = f.sub;
+  document.getElementById("shot").src = `screens/${f.shot}.png`;
+</script>
+</body>
+</html>

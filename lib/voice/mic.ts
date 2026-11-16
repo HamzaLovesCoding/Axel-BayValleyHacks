@@ -14,7 +14,7 @@ let users = 0;
 // iOS only runs an AudioContext that was started or resumed inside a tap. Call this from any tap;
 // until then the level meter reads silence and nothing gets recorded.
 export function resumeAudio() {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || typeof AudioContext === "undefined") return;
   context ??= new AudioContext();
   if (context.state === "suspended") void context.resume().catch(() => {});
 }

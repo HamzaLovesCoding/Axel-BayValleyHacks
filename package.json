@@ -1,5 +1,5 @@
 {
-  "name": "axel-bayvalleyhacks",
+  "name": "arm-dashboard",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,15 +9,23 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --import ./scripts/test-register.mjs --test tests/*.test.*",
-    "typecheck": "tsc --noEmit",
-    "tunnel": "node --env-file-if-exists=.env.local scripts/tunnel.mjs"
+    "bridge:mock": "node scripts/mock-bridge.mjs",
+    "bridge": "node --env-file-if-exists=.env.local bridge/main.ts",
+    "bridge:dry": "node --env-file-if-exists=.env.local bridge/main.ts --dry-run",
+    "jog": "node --env-file-if-exists=.env.local bridge/jog.ts",
+    "whisper": "whisper-server -m \"$HOME/.cache/whisper.cpp/ggml-base.en.bin\" --host 127.0.0.1 --port 8080 --convert",
+    "tunnel": "node --env-file-if-exists=.env.local scripts/tunnel.mjs",
+    "test": "node --test \"bridge/**/*.test.ts\" && node --import ./scripts/test-register.mjs --test tests/*.test.mjs",
+    "typecheck": "tsc --noEmit && tsc -p bridge",
+    "preflight": "node --env-file-if-exists=.env.local bridge/preflight.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
+    "@serialport/parser-readline": "^13.0.0",
     "next": "16.4.5",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "serialport": "^13.0.0",
     "zustand": "^5.1.0"
   },
   "devDependencies": {

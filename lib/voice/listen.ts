@@ -36,7 +36,7 @@ function recognitionClass(): RecognitionConstructor | undefined {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition;
 }
 
-const canListenBrowser = () => recognitionClass() !== undefined;
+export const canListenBrowser = () => recognitionClass() !== undefined;
 
 export const canListen = (engine: VoiceEngines["stt"] = "browser") =>
   (engine === "whisper" && canRecord()) || canListenBrowser();
@@ -90,4 +90,51 @@ function listenBrowser(handlers: ListenHandlers): Listening | null {
     return null;
   }
   return { finish: () => rec.stop(), cancel: () => rec.abort() };
+}
+
+// The browser engine's ear for "stop" while the arm moves (the Whisper one is ./wake.ts). Hands every
+// transcript, interim words included, to the caller. The recogniser ends itself every so often, so
+// this starts it again until told to stop. Returns the function that ends it.
+export function listenForStop(onHeard: (text: string) => void): () => void {
+  const Recognition = recognitionClass();
+  if (!Recognition) return () => {};
+  let active = true;
+  let rec: Recognition | null = null;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  // A move lasts well under a minute; this only stops a recogniser that fails instantly from spinning.
+  let restarts = 0;
+
+  const start = () => {
+    if (!active) return;
+    rec = new Recognition();
+    rec.lang = "en-US";
+    rec.interimResults = true;
+    rec.continuous = true;
+    rec.maxAlternatives = 1;
+    rec.onresult = (event) => {
+      let text = "";
+      for (let i = 0; i < event.results.length; i++) text += ` ${event.results[i][0]?.transcript ?? ""}`;
+      if (active) onHeard(text.trim());
+    };
+    rec.onerror = (event) => {
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") active = false;
+    };
+    rec.onend = () => {
+      if (active && ++restarts <= 40) timer = setTimeout(start, 250);
+    };
+    try {
+      rec.start();
+    } catch {
+      active = false;
+    }
+  };
+  start();
+
+  return () => {
+    active = false;
+    clearTimeout(timer);
+    try {
+      rec?.abort();
+    } catch {}
+  };
 }

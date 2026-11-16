@@ -8,7 +8,7 @@ export const angleOf = (position: number) => (position - 1) * 30;
 export const HANDOFF_ANGLE = 270;
 export const REST_ANGLE = 90;
 
-export const DEFAULT_TRAY: Slot[] = ["Keys", "Glasses", "Water", "Pills", "Phone", "Remote", "Book"].map((name, i) => ({
+export const DEFAULT_TRAY: Slot[] = ["Keys", "Glasses", "Medication", "Pills", "Phone", "Remote", "Book"].map((name, i) => ({
   position: i + 1,
   name,
 }));

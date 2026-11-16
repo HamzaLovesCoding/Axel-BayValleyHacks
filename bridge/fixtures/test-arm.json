@@ -1,0 +1,123 @@
+{
+  "taught": true,
+  "joints": {
+    "yaw": {
+      "pin": 3,
+      "us": [500, 2500],
+      "min": 0,
+      "max": 180
+    },
+    "shoulder": {
+      "pin": 5,
+      "us": [500, 2500],
+      "min": 0,
+      "max": 180
+    },
+    "elbow": {
+      "pin": 6,
+      "us": [500, 2500],
+      "min": 0,
+      "max": 180
+    },
+    "wrist": {
+      "pin": 9,
+      "us": [500, 2500],
+      "min": 0,
+      "max": 180
+    },
+    "grip": {
+      "pin": 10,
+      "us": [500, 2500],
+      "min": 0,
+      "max": 180
+    }
+  },
+  "speed": {
+    "normal": 60,
+    "nearPerson": 30,
+    "grasp": 25
+  },
+  "timing": {
+    "gripSettleMs": 300,
+    "releaseWaitMs": 800
+  },
+  "poses": {
+    "stow": [90, 120, 30, 90, 90],
+    "carry": [null, 110, 40, 80, null],
+    "handoff": [170, 70, 60, 100, null]
+  },
+  "spots": {
+    "1": {
+      "taught": true,
+      "yaw": 10,
+      "above": [null, 80, 70, 70, null],
+      "pick": [null, 65, 85, 70, null]
+    },
+    "2": {
+      "taught": true,
+      "yaw": 30,
+      "above": [null, 80, 70, 70, null],
+      "pick": [null, 65, 85, 70, null]
+    },
+    "3": {
+      "taught": true,
+      "yaw": 50,
+      "above": [null, 80, 70, 70, null],
+      "pick": [null, 65, 85, 70, null]
+    },
+    "4": {
+      "taught": true,
+      "yaw": 70,
+      "above": [null, 80, 70, 70, null],
+      "pick": [null, 65, 85, 70, null]
+    },
+    "5": {
+      "taught": true,
+      "yaw": 90,
+      "above": [null, 80, 70, 70, null],
+      "pick": [null, 65, 85, 70, null]
+    },
+    "6": {
+      "taught": true,
+      "yaw": 110,
+      "above": [null, 80, 70, 70, null],
+      "pick": [null, 65, 85, 70, null]
+    },
+    "7": {
+      "taught": true,
+      "yaw": 130,
+      "above": [null, 80, 70, 70, null],
+      "pick": [null, 65, 85, 70, null]
+    }
+  },
+  "grip": {
+    "1": {
+      "open": 140,
+      "close": 80
+    },
+    "2": {
+      "open": 140,
+      "close": 80
+    },
+    "3": {
+      "open": 140,
+      "close": 80
+    },
+    "4": {
+      "open": 140,
+      "close": 80
+    },
+    "5": {
+      "open": 140,
+      "close": 80
+    },
+    "6": {
+      "open": 140,
+      "close": 80
+    },
+    "7": {
+      "open": 140,
+      "close": 80
+    }
+  }
+}

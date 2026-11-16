@@ -6,6 +6,9 @@ import { parseAssistantRequest, parseCommand } from "../lib/command.ts";
 import { createSimLink } from "../lib/robot/sim.ts";
 import { DEFAULT_TRAY } from "../lib/tray.ts";
 import { useAssistant } from "../lib/store.ts";
+import { DryArm } from "../bridge/arm.ts";
+import { loadConfig, resolve } from "../bridge/config.ts";
+import { createBridge } from "../bridge/server.ts";
 
 const initial = useAssistant.getState();
 const request = (text, extra = {}) => ({ text, tray: DEFAULT_TRAY, holding: null, presenting: null, lastFetched: 2, history: [], ...extra });
@@ -66,7 +69,7 @@ test("store respects bridge state preconditions and release cancels a presentati
   reset(t);
   t.mock.method(globalThis, "fetch", keywords);
   useAssistant.setState({ presenting: 2 });
-  await useAssistant.getState().ask("Bring me the water", "text");
+  await useAssistant.getState().ask("Bring me the medication", "text");
   assert.equal(useAssistant.getState().line.text, "I'm waiting for you to hand something back first.");
   await useAssistant.getState().ask("Put the glasses back", "text");
   assert.equal(useAssistant.getState().line.text, "I'm already waiting for you to hand it to me.");
@@ -82,15 +85,56 @@ test("Stop during model interpretation prevents a late answer from starting moti
   reset(t);
   let resolve;
   t.mock.method(globalThis, "fetch", () => new Promise((yes) => { resolve = yes; }));
-  const ask = useAssistant.getState().ask("Bring me the water", "text");
+  const ask = useAssistant.getState().ask("Bring me the medication", "text");
   assert.equal(useAssistant.getState().mode, "thinking");
   await useAssistant.getState().ask("stop", "voice");
-  resolve(Response.json(interpretKeywords(request("Bring me the water"))));
+  resolve(Response.json(interpretKeywords(request("Bring me the medication"))));
   await ask;
   assert.equal(useAssistant.getState().phase, "stopped");
   assert.equal(useAssistant.getState().mode, "idle");
   assert.equal(useAssistant.getState().holding, null);
 });
+
+test("store hand-back and reload reconciliation work against a real HTTP DryArm bridge", async (t) => {
+  reset(t);
+  const config = await loadConfig("bridge/fixtures/test-arm.json");
+  const arm = new DryArm(resolve(config.poses.stow, [], config), { timeScale: 0.001 });
+  const bridge = createBridge({ arm, config });
+  await new Promise((yes) => bridge.server.listen(0, "127.0.0.1", yes));
+  t.after(() => bridge.server.close());
+  const url = `http://127.0.0.1:${bridge.server.address().port}`;
+  const fetch = globalThis.fetch;
+  t.mock.method(globalThis, "fetch", async (input, options) => {
+    if (input === "/api/assistant") return keywords(input, options);
+    if (input === "/api/robot" && !options?.method) {
+      const res = await fetch(`${url}/status`);
+      return Response.json({ configured: true, reachable: res.ok, ...await res.json() });
+    }
+    if (input === "/api/robot") return fetch(`${url}/command`, options);
+    throw new Error(`Unexpected fetch ${input}`);
+  });
+  useAssistant.setState({ robotMode: "robot" });
+  for (const via of ["voice", "text", "tap"]) {
+    await useAssistant.getState().ask("Put the glasses back", via);
+    assert.equal(bridge.state.presenting, 2);
+    useAssistant.setState({ presenting: null, holding: null });
+    await useAssistant.getState().refreshHealth();
+    assert.equal(useAssistant.getState().presenting, 2, "reload learns the bridge's presentation");
+    await useAssistant.getState().ask(via === "tap" ? "Take it" : "ok", via);
+    assert.equal(bridge.state.presenting, null);
+    assert.equal(bridge.state.holding, null);
+    assert.equal(useAssistant.getState().phase, "stowed");
+  }
+  await useAssistant.getState().ask("Bring me the glasses", "text");
+  assert.equal(bridge.state.holding, 2);
+  useAssistant.setState({ holding: null, presenting: null });
+  await useAssistant.getState().refreshHealth();
+  assert.equal(useAssistant.getState().holding, 2);
+  await useAssistant.getState().ask("release", "tap");
+  assert.deepEqual(useAssistant.getState().away, [2]);
+  await sleep(10);
+});
+
 
 test("status busy exposes Stop after reload, and ready status never turns a stopped pose into stowed", async (t) => {
   reset(t);

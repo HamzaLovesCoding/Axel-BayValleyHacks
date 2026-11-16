@@ -1,0 +1,35 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "app",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "3001"
+      ],
+      "port": 3001
+    },
+    {
+      "name": "bridge-dry",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "bridge:dry"
+      ],
+      "port": 8787
+    },
+    {
+      "name": "whisper",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "whisper-server -m \"$HOME/.cache/whisper.cpp/ggml-base.en.bin\" --host 127.0.0.1 --port 8080 --convert"
+      ],
+      "port": 8080
+    }
+  ]
+}
